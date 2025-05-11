@@ -2,7 +2,9 @@ import { useEffect, useState, useRef } from 'react';   // React hooks
 import { io } from 'socket.io-client';                // Socket.io client
 
 // Create a socket connection to the backend server
-const socket = io('https://shapewebsitev2-production.up.railway.app');
+const socket = io('https://shapewebsitev2-production.up.railway.app', {
+  transports: ['websocket'],
+});
 
 function App() {
   const [messages, setMessages] = useState([]);     // Chat message history
