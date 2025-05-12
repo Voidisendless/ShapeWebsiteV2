@@ -1,18 +1,18 @@
 import { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
 
-// Connect to your live backend URL
+// Connect to your live backend URL (replace with yours)
 const socket = io('https://your-backend-name.up.railway.app', {
   transports: ['websocket'],
 });
 
 function App() {
-  const [messages, setMessages] = useState([]);
-  const [msg, setMsg] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const bottomRef = useRef(null);
+  const [messages, setMessages] = useState([]);           // Chat message history
+  const [msg, setMsg] = useState('');                     // Input message text
+  const [isTyping, setIsTyping] = useState(false);        // Typing indicator
+  const bottomRef = useRef(null);                         // Ref for auto-scroll
 
-  // Handle incoming messages and typing signals
+  // Listen for messages and typing from backend
   useEffect(() => {
     socket.on('chat-message', (message) => {
       setMessages((prev) => [...prev, message]);
@@ -29,12 +29,12 @@ function App() {
     };
   }, []);
 
-  // Auto-scroll to the bottom on new messages
+  // Scroll to bottom on new message
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Send chat message
+  // Handle form submit
   const sendMessage = (e) => {
     e.preventDefault();
     if (!msg.trim()) return;
@@ -49,10 +49,11 @@ function App() {
     setMsg('');
   };
 
-  // Handle typing input
+  // Handle input change (typing)
   const handleTyping = (e) => {
-    setMsg(e.target.value);
-    socket.emit('user-typing');
+    const value = e.target.value;
+    setMsg(value);                       // Update input value
+    socket.emit('user-typing');         // Notify others you're typing
   };
 
   return (
@@ -81,15 +82,15 @@ function App() {
         }}
       >
         {messages.map((m, i) => {
-          const isBot = m.sender.toLowerCase() === 'voidai'; // Bot check
+          const isBot = m.sender.toLowerCase() === 'voidai';
 
           return (
             <div
               key={i}
               style={{
                 alignSelf: isBot ? 'flex-start' : 'flex-end',
-                backgroundColor: isBot ? '#ddd' : '#b2fab4', // Bot = light gray, User = light green
-                color: '#000', // Black text in bubbles
+                backgroundColor: isBot ? '#ddd' : '#b2fab4',
+                color: '#000',
                 padding: '8px 12px',
                 borderRadius: '8px',
                 marginBottom: '8px',
@@ -104,7 +105,6 @@ function App() {
           );
         })}
 
-        {/* Typing indicator */}
         {isTyping && (
           <div style={{ fontStyle: 'italic', fontSize: '0.85em', marginTop: '5px', color: '#ccc' }}>
             Someone is typing...
@@ -114,9 +114,10 @@ function App() {
         <div ref={bottomRef}></div>
       </div>
 
-      {/* Input form */}
+      {/* Message input */}
       <form onSubmit={sendMessage} style={{ display: 'flex', marginTop: 10 }}>
         <input
+          type="text"
           value={msg}
           onChange={handleTyping}
           placeholder="Type a message..."
