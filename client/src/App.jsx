@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
 
 // Connect to your live backend URL (replace with yours)
-const socket = io('https://your-backend-name.up.railway.app', {
+const socket = io('shapewebsitev2-production.up.railway.app', {
   transports: ['websocket'],
 });
 
