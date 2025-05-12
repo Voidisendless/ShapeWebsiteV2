@@ -1,6 +1,3 @@
-console.log('API Key:', process.env.SHAPESINC_API_KEY?.slice(0, 5) + '...');
-console.log('Shape:', process.env.SHAPE_USERNAME);
-
 // Load environment variables from .env file
 require('dotenv').config();
 
