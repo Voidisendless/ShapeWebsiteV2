@@ -1,4 +1,4 @@
-// Load environment variables from .env file 
+// Load environment variables from .env file
 require('dotenv').config();
 
 // Import dependencies
@@ -6,24 +6,67 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const axios = require('axios'); // Used to make HTTP requests to Shapes API
+const axios = require('axios');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
-// Create an Express app
+// Setup
 const app = express();
-app.use(cors()); // Allow cross-origin requests (so frontend can connect)
+app.use(cors());
+app.use(express.json());
 
-// Create an HTTP server using the Express app
 const server = http.createServer(app);
-
-// Initialize Socket.io server with CORS settings
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173', // Allow frontend origin
+    origin: 'http://localhost:5173', // Update to your frontend URL in prod
     methods: ['GET', 'POST'],
   },
 });
 
-// ===== 🧠 SHAPES BOT FUNCTION (with custom headers) =====
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+const users = []; // In-memory user store
+
+// ===== /register =====
+app.post('/register', async (req, res) => {
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: 'All fields required' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+
+  const existing = users.find(u => u.username === username || u.email === email);
+  if (existing) {
+    return res.status(409).json({ error: 'User already exists' });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  users.push({ username, email, password: hashedPassword });
+
+  res.status(201).json({ message: 'User registered successfully' });
+});
+
+// ===== /login =====
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = users.find(u => u.email === email);
+  if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) return res.status(401).json({ error: 'Invalid credentials' });
+
+  const token = jwt.sign(
+    { username: user.username, email: user.email },
+    JWT_SECRET,
+    { expiresIn: '2h' }
+  );
+
+  res.json({ token, username: user.username });
+});
+
+// ===== Shapes API Request =====
 async function getShapeReply(userMessage, modelId, userId, channelId) {
   try {
     const response = await axios.post(
@@ -41,42 +84,61 @@ async function getShapeReply(userMessage, modelId, userId, channelId) {
         },
       }
     );
-
     return response.data.choices[0].message.content;
   } catch (error) {
-    console.error(`Error contacting Shapes API (${modelId}):`, error.message);
+    console.error(`❌ Error from Shapes API (${modelId}):`, error.message);
     throw error;
   }
 }
 
-// ===== 🔌 SOCKET.IO SETUP =====
+// ===== JWT Middleware for Socket.io =====
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) return next(new Error('Authentication token required'));
+
+  try {
+    const user = jwt.verify(token, JWT_SECRET);
+    socket.user = user;
+    next();
+  } catch (err) {
+    next(new Error('Invalid token'));
+  }
+});
+
+// ===== Socket Events =====
 io.on('connection', (socket) => {
-  console.log(`🔌 New client connected: ${socket.id}`);
+  console.log(`🔌 Socket connected: ${socket.user.username} (${socket.id})`);
 
   socket.on('user-typing', () => {
     socket.broadcast.emit('user-typing');
   });
 
   socket.on('chat-message', async (msg) => {
-    console.log(`📨 [${msg.channel}] ${msg.sender}: ${msg.text}`);
-    io.emit('chat-message', msg);
+    const enrichedMsg = {
+      ...msg,
+      sender: socket.user.username,
+      userId: socket.user.email,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
 
-    // Match @mention with hyphen support (e.g., @akio-nemo)
+    console.log(`📨 [${enrichedMsg.channel}] ${enrichedMsg.sender}: ${enrichedMsg.text}`);
+    io.emit('chat-message', enrichedMsg);
+
+    // Bot call if @mention detected
     const mentionMatch = msg.text.match(/@([\w-]+)/);
     const mentionedBot = mentionMatch?.[1];
 
     if (msg.channel === 'bots' && mentionedBot) {
       const modelId = `shapesinc/${mentionedBot.toLowerCase()}`;
-
       try {
         const botReply = await getShapeReply(
           msg.text,
           modelId,
-          msg.userId,   // ✅ user ID from frontend
-          msg.channel   // ✅ channel name from frontend
+          enrichedMsg.userId,
+          enrichedMsg.channel
         );
 
-        const botMessage = {
+        const botMsg = {
           text: botReply,
           sender: mentionedBot,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -84,10 +146,10 @@ io.on('connection', (socket) => {
           bot: true,
         };
 
-        io.emit('chat-message', botMessage);
-      } catch (err) {
+        io.emit('chat-message', botMsg);
+      } catch {
         io.emit('chat-message', {
-          text: `⚠️ @${mentionedBot} couldn't respond right now.`,
+          text: `⚠️ @${mentionedBot} couldn't respond.`,
           sender: mentionedBot,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           channel: 'bots',
@@ -98,11 +160,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log(`❌ Client disconnected: ${socket.id}`);
+    console.log(`❌ Socket disconnected: ${socket.user.username} (${socket.id})`);
   });
 });
 
-// Start server on port 3000
+// ===== Start Server =====
 server.listen(3000, () => {
-  console.log('✅ Server listening on http://localhost:3000');
+  console.log('✅ Server running at http://localhost:3000');
 });
