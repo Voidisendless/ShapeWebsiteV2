@@ -144,7 +144,8 @@ function App() {
           minHeight: 0,
         }}>
           {filteredMessages.map((m, i) => {
-            const isBot = m.sender.toLowerCase() === 'voidai';
+            const isBot = !username || m.sender.toLowerCase() !== username.toLowerCase();
+
 
             return (
               <div key={i} style={{
