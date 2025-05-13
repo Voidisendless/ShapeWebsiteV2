@@ -60,7 +60,7 @@ io.on('connection', (socket) => {
     io.emit('chat-message', msg);
 
     // Match any @botname from the message (e.g., @Claude)
-    const mentionMatch = msg.text.match(/@(\w+)/);
+    const mentionMatch = msg.text.match(/@([\w-]+)/); // ✅ allows hyphens
     const mentionedBot = mentionMatch?.[1]; // e.g., "Claude"
 
     // Only respond if in #bots and a mention is found
