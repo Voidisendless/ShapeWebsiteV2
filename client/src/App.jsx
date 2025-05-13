@@ -76,7 +76,7 @@ function App() {
           flexDirection: 'column',
           border: '1px solid #444',
           padding: 10,
-          height: 300,
+          height: 500,
           overflowY: 'auto',
           backgroundColor: '#111',
         }}
