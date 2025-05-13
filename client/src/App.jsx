@@ -1,18 +1,29 @@
 import { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
 
-// Connect to your live backend
+// Connect to backend
 const socket = io('https://shapewebsitev2-production.up.railway.app', {
   transports: ['websocket'],
 });
 
+// Generate random name like "Zany-Otter"
+const generateUsername = () => {
+  const adjectives = ['Lazy', 'Happy', 'Brave', 'Quick', 'Clever', 'Zany', 'Sneaky', 'Loud', 'Chill', 'Curious'];
+  const animals = ['Lemur', 'Penguin', 'Tiger', 'Otter', 'Panda', 'Koala', 'Fox', 'Eagle', 'Turtle', 'Sloth'];
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const animal = animals[Math.floor(Math.random() * animals.length)];
+  return `${adj}-${animal}`;
+};
+
 function App() {
   const [messages, setMessages] = useState([]);
   const [msg, setMsg] = useState('');
+  const [channel, setChannel] = useState('bots'); // Default channel
   const [isTyping, setIsTyping] = useState(false);
+  const [username] = useState(generateUsername());
   const bottomRef = useRef(null);
 
-  // Listen for chat messages and typing
+  // Handle incoming messages
   useEffect(() => {
     socket.on('chat-message', (message) => {
       setMessages((prev) => [...prev, message]);
@@ -29,18 +40,7 @@ function App() {
     };
   }, []);
 
-  // Show socket connection in console
-  useEffect(() => {
-    socket.on('connect', () => {
-      console.log('✅ Connected to backend socket:', socket.id);
-    });
-
-    socket.on('disconnect', () => {
-      console.log('❌ Disconnected from backend socket');
-    });
-  }, []);
-
-  // Auto-scroll to bottom on new message
+  // Scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -52,23 +52,25 @@ function App() {
 
     const messageObj = {
       text: msg,
-      sender: `Guest-${socket.id.slice(0, 4)}`,
+      sender: username,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      channel, // 👈 include current channel
     };
 
     socket.emit('chat-message', messageObj);
     setMsg('');
   };
 
-  // Handle typing
+  // Typing feedback
   const handleTyping = (e) => {
-    const value = e.target.value;
-    setMsg(value);
+    setMsg(e.target.value);
     socket.emit('user-typing');
   };
 
+  // Only show messages for selected channel
+  const filteredMessages = messages.filter((m) => m.channel === channel);
+
   return (
-    // Full-page black background + centered content
     <div style={{
       display: 'flex',
       justifyContent: 'center',
@@ -80,7 +82,6 @@ function App() {
       backgroundColor: '#000',
       boxSizing: 'border-box',
     }}>
-      {/* Chat container */}
       <div style={{
         display: 'flex',
         flexDirection: 'column',
@@ -93,9 +94,42 @@ function App() {
         borderRadius: '10px',
         boxShadow: '0 0 10px rgba(255, 255, 255, 0.1)',
       }}>
-        <h2 style={{ marginTop: 0 }}>ShapeSpace</h2>
+        <h2 style={{ marginTop: 0 }}>
+          💬 Chatting as <span style={{ color: '#4caf50' }}>{username}</span>
+        </h2>
 
-        {/* Chat messages */}
+        {/* Channel Tabs */}
+        <div style={{ marginBottom: '1rem' }}>
+          <button
+            onClick={() => setChannel('bots')}
+            style={{
+              padding: '6px 12px',
+              marginRight: 10,
+              backgroundColor: channel === 'bots' ? '#4caf50' : '#333',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+            }}
+          >
+            #bots
+          </button>
+          <button
+            onClick={() => setChannel('general')}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: channel === 'general' ? '#4caf50' : '#333',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+            }}
+          >
+            #general
+          </button>
+        </div>
+
+        {/* Chat display */}
         <div style={{
           flexGrow: 1,
           overflowY: 'auto',
@@ -105,48 +139,41 @@ function App() {
           borderRadius: '8px',
           minHeight: 0,
         }}>
-          {messages.map((m, i) => {
+          {filteredMessages.map((m, i) => {
             const isBot = m.sender.toLowerCase() === 'voidai';
 
             return (
-              <div
-                key={i}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  flexDirection: isBot ? 'row' : 'row-reverse',
-                  marginBottom: '12px',
-                }}
-              >
+              <div key={i} style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                flexDirection: isBot ? 'row' : 'row-reverse',
+                marginBottom: '12px',
+              }}>
                 {/* Avatar */}
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    backgroundColor: isBot ? '#888' : '#4caf50',
-                    color: '#000',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '1rem',
-                    margin: '0 10px',
-                  }}
-                >
+                <div style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  backgroundColor: isBot ? '#888' : '#4caf50',
+                  color: '#000',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 'bold',
+                  fontSize: '1rem',
+                  margin: '0 10px',
+                }}>
                   {m.sender[0].toUpperCase()}
                 </div>
 
-                {/* Message bubble */}
-                <div
-                  style={{
-                    backgroundColor: isBot ? '#ddd' : '#b2fab4',
-                    color: '#000',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    maxWidth: '70%',
-                  }}
-                >
+                {/* Bubble */}
+                <div style={{
+                  backgroundColor: isBot ? '#ddd' : '#b2fab4',
+                  color: '#000',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  maxWidth: '70%',
+                }}>
                   <div style={{ fontSize: '0.85em', fontWeight: 'bold', marginBottom: '4px' }}>
                     {m.sender} <span style={{ fontWeight: 'normal', fontSize: '0.75em' }}>@ {m.time}</span>
                   </div>
@@ -156,23 +183,21 @@ function App() {
             );
           })}
 
-          {/* Typing indicator */}
           {isTyping && (
             <div style={{ fontStyle: 'italic', fontSize: '0.85em', color: '#ccc', margin: '6px 0' }}>
               Someone is typing...
             </div>
           )}
-
           <div ref={bottomRef}></div>
         </div>
 
-        {/* Input area */}
+        {/* Input form */}
         <form onSubmit={sendMessage} style={{ display: 'flex', marginTop: 10 }}>
           <input
             type="text"
             value={msg}
             onChange={handleTyping}
-            placeholder="Type a message..."
+            placeholder={`Send a message to #${channel}...`}
             style={{
               flexGrow: 1,
               padding: '10px',
