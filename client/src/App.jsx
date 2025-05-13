@@ -53,8 +53,9 @@ function App() {
     const messageObj = {
       text: msg,
       sender: username,
+      userId: socket.id, // ✅ track the sender uniquely
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      channel, // 👈 include current channel
+      channel,
     };
 
     socket.emit('chat-message', messageObj);
@@ -96,8 +97,8 @@ function App() {
       }}>
         <h1 style={{ textAlign: 'center' }}>ShapeSpace</h1>
         <h2 style={{
-          marginTop: 0,          // remove default top spacing
-          textAlign: 'center',   // center the text horizontally
+          marginTop: 0,
+          textAlign: 'center',
         }}>
           Chatting as <span style={{ color: '#4caf50' }}>{username}</span>
         </h2>
@@ -147,13 +148,11 @@ function App() {
             const isSelf = m.userId === socket.id;
             const isBot = m.bot === true;
 
-
-
             return (
               <div key={i} style={{
                 display: 'flex',
                 alignItems: 'flex-start',
-                flexDirection: isBot ? 'row' : 'row-reverse',
+                flexDirection: isSelf ? 'row-reverse' : 'row',
                 marginBottom: '12px',
               }}>
                 {/* Avatar */}
@@ -161,7 +160,7 @@ function App() {
                   width: 40,
                   height: 40,
                   borderRadius: '50%',
-                  backgroundColor: isBot ? '#888' : '#4caf50',
+                  backgroundColor: isBot ? '#888' : isSelf ? '#4caf50' : '#2196f3',
                   color: '#000',
                   display: 'flex',
                   alignItems: 'center',
@@ -170,12 +169,12 @@ function App() {
                   fontSize: '1rem',
                   margin: '0 10px',
                 }}>
-                  {m.sender[0].toUpperCase()}
+                  {m.sender[0]?.toUpperCase() || '?'}
                 </div>
 
                 {/* Bubble */}
                 <div style={{
-                  backgroundColor: isBot ? '#ddd' : '#b2fab4',
+                  backgroundColor: isBot ? '#ddd' : isSelf ? '#b2fab4' : '#fff',
                   color: '#000',
                   padding: '8px 12px',
                   borderRadius: '10px',
