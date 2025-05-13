@@ -1,18 +1,18 @@
 import { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
 
-// Connect to live backend (make sure to use the full https:// URL)
+// Connect to your live backend
 const socket = io('https://shapewebsitev2-production.up.railway.app', {
   transports: ['websocket'],
 });
 
 function App() {
-  const [messages, setMessages] = useState([]);     // All messages in the chat
-  const [msg, setMsg] = useState('');               // Current message being typed
-  const [isTyping, setIsTyping] = useState(false);  // Show typing indicator
-  const bottomRef = useRef(null);                   // Ref to scroll to bottom
+  const [messages, setMessages] = useState([]);
+  const [msg, setMsg] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const bottomRef = useRef(null);
 
-  // Listen for chat messages and typing from server
+  // Receive messages and typing events
   useEffect(() => {
     socket.on('chat-message', (message) => {
       setMessages((prev) => [...prev, message]);
@@ -20,7 +20,7 @@ function App() {
 
     socket.on('user-typing', () => {
       setIsTyping(true);
-      setTimeout(() => setIsTyping(false), 1500); // Auto-clear after 1.5s
+      setTimeout(() => setIsTyping(false), 1500);
     });
 
     return () => {
@@ -29,7 +29,7 @@ function App() {
     };
   }, []);
 
-  // Show socket connection status in console
+  // Log socket connection status
   useEffect(() => {
     socket.on('connect', () => {
       console.log('✅ Connected to backend socket:', socket.id);
@@ -40,12 +40,12 @@ function App() {
     });
   }, []);
 
-  // Scroll to the latest message automatically
+  // Auto-scroll to latest message
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Send message to server
+  // Send chat message
   const sendMessage = (e) => {
     e.preventDefault();
     if (!msg.trim()) return;
@@ -60,7 +60,7 @@ function App() {
     setMsg('');
   };
 
-  // Handle user typing in the input
+  // Track input + emit typing event
   const handleTyping = (e) => {
     const value = e.target.value;
     setMsg(value);
@@ -68,7 +68,7 @@ function App() {
   };
 
   return (
-    // Full-screen wrapper to center chat
+    // Full-screen black background & centering
     <div style={{
       display: 'flex',
       justifyContent: 'center',
@@ -76,7 +76,7 @@ function App() {
       height: '100vh',
       backgroundColor: '#000',
     }}>
-      {/* Chat container box */}
+      {/* Chat app container */}
       <div style={{
         width: '800px',
         height: '90vh',
@@ -89,19 +89,16 @@ function App() {
       }}>
         <h2>💬 Real-Time Chat with VoidAI</h2>
 
-        {/* Chat display area */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            border: '1px solid #444',
-            padding: 10,
-            height: '70vh',
-            overflowY: 'auto',
-            backgroundColor: '#111',
-          }}
-        >
-          {/* Render each message */}
+        {/* Chat history */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          border: '1px solid #444',
+          padding: 10,
+          height: '70vh',
+          overflowY: 'auto',
+          backgroundColor: '#111',
+        }}>
           {messages.map((m, i) => {
             const isBot = m.sender.toLowerCase() === 'voidai';
 
@@ -109,31 +106,58 @@ function App() {
               <div
                 key={i}
                 style={{
-                  alignSelf: isBot ? 'flex-start' : 'flex-end',
-                  backgroundColor: isBot ? '#ddd' : '#b2fab4',
-                  color: '#000',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  marginBottom: '8px',
-                  maxWidth: '75%',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  flexDirection: isBot ? 'row' : 'row-reverse',
+                  marginBottom: '12px',
                 }}
               >
-                <div style={{ fontSize: '0.85em', fontWeight: 'bold' }}>
-                  {m.sender} <span style={{ fontWeight: 'normal', fontSize: '0.75em' }}>@ {m.time}</span>
+                {/* Avatar */}
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    backgroundColor: isBot ? '#888' : '#4caf50',
+                    color: '#000',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                    fontSize: '1rem',
+                    margin: '0 10px',
+                  }}
+                >
+                  {m.sender[0].toUpperCase()}
                 </div>
-                <div>{m.text}</div>
+
+                {/* Message bubble */}
+                <div
+                  style={{
+                    backgroundColor: isBot ? '#ddd' : '#b2fab4',
+                    color: '#000',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    maxWidth: '70%',
+                  }}
+                >
+                  <div style={{ fontSize: '0.85em', fontWeight: 'bold', marginBottom: '4px' }}>
+                    {m.sender} <span style={{ fontWeight: 'normal', fontSize: '0.75em' }}>@ {m.time}</span>
+                  </div>
+                  <div>{m.text}</div>
+                </div>
               </div>
             );
           })}
 
           {/* Typing indicator */}
           {isTyping && (
-            <div style={{ fontStyle: 'italic', fontSize: '0.85em', marginTop: '5px', color: '#ccc' }}>
+            <div style={{ fontStyle: 'italic', fontSize: '0.85em', color: '#ccc', margin: '6px 0' }}>
               Someone is typing...
             </div>
           )}
 
-          {/* Invisible element to scroll to */}
+          {/* Invisible anchor to scroll to */}
           <div ref={bottomRef}></div>
         </div>
 
