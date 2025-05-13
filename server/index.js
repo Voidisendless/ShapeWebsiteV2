@@ -23,13 +23,13 @@ const io = new Server(server, {
   },
 });
 
-// ===== 🧠 SHAPES BOT FUNCTION =====
-async function getShapeReply(userMessage) {
+// ===== 🧠 SHAPES BOT FUNCTION (now accepts dynamic model) =====
+async function getShapeReply(userMessage, modelId) {
   try {
     const response = await axios.post(
       'https://api.shapes.inc/v1/chat/completions',
       {
-        model: process.env.SHAPE_USERNAME,
+        model: modelId,
         messages: [{ role: 'user', content: userMessage }],
       },
       {
@@ -42,8 +42,8 @@ async function getShapeReply(userMessage) {
 
     return response.data.choices[0].message.content;
   } catch (error) {
-    console.error('Error contacting Shapes API:', error.message);
-    return "Sorry, I couldn't respond right now.";
+    console.error(`Error contacting Shapes API (${modelId}):`, error.message);
+    throw error;
   }
 }
 
@@ -59,21 +59,34 @@ io.on('connection', (socket) => {
     console.log(`📨 [${msg.channel}] ${msg.sender}: ${msg.text}`);
     io.emit('chat-message', msg);
 
-    // Case-insensitive check for @VoidAI in the bots channel
-    if (
-      msg.channel === 'bots' &&
-      msg.text.toLowerCase().includes('@voidai')
-    ) {
-      const botReply = await getShapeReply(msg.text);
+    // Match any @botname from the message (e.g., @Claude)
+    const mentionMatch = msg.text.match(/@(\w+)/);
+    const mentionedBot = mentionMatch?.[1]; // e.g., "Claude"
 
-      const botMessage = {
-        text: botReply,
-        sender: 'VoidAI',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        channel: 'bots',
-      };
+    // Only respond if in #bots and a mention is found
+    if (msg.channel === 'bots' && mentionedBot) {
+      const modelId = `shapesinc/${mentionedBot.toLowerCase()}`;
 
-      io.emit('chat-message', botMessage);
+      try {
+        const botReply = await getShapeReply(msg.text, modelId);
+
+        const botMessage = {
+          text: botReply,
+          sender: mentionedBot,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          channel: 'bots',
+        };
+
+        io.emit('chat-message', botMessage);
+      } catch (err) {
+        // Reply with fallback message if API call fails
+        io.emit('chat-message', {
+          text: `⚠️ @${mentionedBot} couldn't respond right now.`,
+          sender: mentionedBot,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          channel: 'bots',
+        });
+      }
     }
   });
 
