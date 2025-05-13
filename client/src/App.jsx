@@ -12,7 +12,7 @@ function App() {
   const [isTyping, setIsTyping] = useState(false);
   const bottomRef = useRef(null);
 
-  // Receive messages and typing events
+  // Listen for chat messages and typing
   useEffect(() => {
     socket.on('chat-message', (message) => {
       setMessages((prev) => [...prev, message]);
@@ -29,7 +29,7 @@ function App() {
     };
   }, []);
 
-  // Log socket connection status
+  // Show socket connection in console
   useEffect(() => {
     socket.on('connect', () => {
       console.log('✅ Connected to backend socket:', socket.id);
@@ -40,12 +40,12 @@ function App() {
     });
   }, []);
 
-  // Auto-scroll to latest message
+  // Auto-scroll to bottom on new message
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Send message to server
+  // Send message
   const sendMessage = (e) => {
     e.preventDefault();
     if (!msg.trim()) return;
@@ -60,7 +60,7 @@ function App() {
     setMsg('');
   };
 
-  // Track input + emit typing event
+  // Handle typing
   const handleTyping = (e) => {
     const value = e.target.value;
     setMsg(value);
@@ -68,31 +68,34 @@ function App() {
   };
 
   return (
-    // Top-level wrapper with padding and full height
+    // Full-page black background + centered content
     <div style={{
       display: 'flex',
       justifyContent: 'center',
-      padding: '2rem',
-      minHeight: '100vh',
+      alignItems: 'center',
+      width: '100vw',
+      height: '100vh',
+      margin: 0,
+      padding: 0,
       backgroundColor: '#000',
       boxSizing: 'border-box',
     }}>
-      {/* Main chat box */}
+      {/* Chat container */}
       <div style={{
         display: 'flex',
         flexDirection: 'column',
         width: '800px',
-        height: '100%',
-        fontFamily: 'sans-serif',
+        height: '90vh',
         backgroundColor: '#000',
         color: '#fff',
+        fontFamily: 'sans-serif',
         padding: '1rem',
         borderRadius: '10px',
         boxShadow: '0 0 10px rgba(255, 255, 255, 0.1)',
       }}>
         <h2 style={{ marginTop: 0 }}>💬 Real-Time Chat with VoidAI</h2>
 
-        {/* Chat message area */}
+        {/* Chat messages */}
         <div style={{
           flexGrow: 1,
           overflowY: 'auto',
@@ -100,7 +103,7 @@ function App() {
           border: '1px solid #444',
           padding: '10px',
           borderRadius: '8px',
-          minHeight: 0, // Prevent flex overflow bugs
+          minHeight: 0,
         }}>
           {messages.map((m, i) => {
             const isBot = m.sender.toLowerCase() === 'voidai';
@@ -163,7 +166,7 @@ function App() {
           <div ref={bottomRef}></div>
         </div>
 
-        {/* Input field and send button */}
+        {/* Input area */}
         <form onSubmit={sendMessage} style={{ display: 'flex', marginTop: 10 }}>
           <input
             type="text"
