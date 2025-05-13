@@ -1,4 +1,5 @@
 import { useState } from 'react'; 
+import { useNavigate, Link } from 'react-router-dom';
 import PageWrapper from './PageWrapper';
 import './Form.css';
 
@@ -6,10 +7,10 @@ function Signup() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
-
     if (!username || !email || !password) return alert('All fields are required');
     if (password.length < 6) return alert('Password must be at least 6 characters');
 
@@ -24,7 +25,7 @@ function Signup() {
       if (!res.ok) return alert(data.error);
 
       alert('Account created!');
-      window.location.href = '/'; // redirect to login
+      navigate('/login');
     } catch (err) {
       alert('Signup failed.');
     }
@@ -70,7 +71,9 @@ function Signup() {
         </div>
 
         <button className="auth-btn" type="submit">Sign Up</button>
-        <div className="switch-link">Already have an account? <a href="/">Log in</a></div>
+        <div className="switch-link">
+          Already have an account? <Link to="/login">Log in</Link>
+        </div>
       </form>
     </PageWrapper>
   );

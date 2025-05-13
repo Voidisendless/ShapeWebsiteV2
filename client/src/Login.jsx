@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import PageWrapper from './PageWrapper';
 import './Form.css';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -22,7 +24,7 @@ function Login() {
 
       localStorage.setItem('authToken', data.token);
       localStorage.setItem('username', data.username);
-      window.location.reload();
+      navigate('/');
     } catch (err) {
       alert('Login failed.');
     }
@@ -56,7 +58,9 @@ function Login() {
         </div>
 
         <button className="auth-btn" type="submit">Log In</button>
-        <div className="switch-link">Don't have an account? <a href="/signup">Sign up</a></div>
+        <div className="switch-link">
+          Don't have an account? <Link to="/signup">Sign up</Link>
+        </div>
       </form>
     </PageWrapper>
   );

@@ -1,5 +1,5 @@
-// ✅ App.jsx - Chat Page (uses JWT + username from login)
 import { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 
 const socket = io('https://shapewebsitev2-production.up.railway.app', {
@@ -16,6 +16,7 @@ function App() {
   const [isTyping, setIsTyping] = useState(false);
   const [username] = useState(localStorage.getItem('username') || 'Guest');
   const bottomRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     socket.on('chat-message', (message) => {
@@ -60,6 +61,12 @@ function App() {
 
   const filteredMessages = messages.filter((m) => m.channel === channel);
 
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('username');
+    navigate('/login');
+  };
+
   return (
     <div style={{
       display: 'flex', justifyContent: 'center', alignItems: 'center',
@@ -70,16 +77,14 @@ function App() {
         height: '90vh', backgroundColor: '#000', color: '#fff', fontFamily: 'sans-serif',
         padding: '1rem', borderRadius: '10px', boxShadow: '0 0 10px rgba(255, 255, 255, 0.1)',
       }}>
-        <button onClick={() => {
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('username');
-          window.location.reload();
-        }}
-        style={{
-          position: 'absolute', top: 20, right: 20,
-          background: 'transparent', color: '#fff', border: '1px solid #fff',
-          borderRadius: '6px', padding: '6px 12px', cursor: 'pointer',
-        }}>Logout</button>
+        <button onClick={handleLogout}
+          style={{
+            position: 'absolute', top: 20, right: 20,
+            background: 'transparent', color: '#fff', border: '1px solid #fff',
+            borderRadius: '6px', padding: '6px 12px', cursor: 'pointer',
+          }}>
+          Logout
+        </button>
 
         <h1 style={{ textAlign: 'center' }}>ShapeSpace</h1>
         <h2 style={{ marginTop: 0, textAlign: 'center' }}>
@@ -100,8 +105,10 @@ function App() {
           }}>#general</button>
         </div>
 
-        <div style={{ flexGrow: 1, overflowY: 'auto', backgroundColor: '#111',
-          border: '1px solid #444', padding: '10px', borderRadius: '8px', minHeight: 0 }}>
+        <div style={{
+          flexGrow: 1, overflowY: 'auto', backgroundColor: '#111',
+          border: '1px solid #444', padding: '10px', borderRadius: '8px', minHeight: 0
+        }}>
           {filteredMessages.map((m, i) => {
             const isSelf = m.userId === socket.id;
             const isBot = m.bot === true;
