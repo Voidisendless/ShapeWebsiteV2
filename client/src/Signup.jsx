@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from 'react'; 
 import PageWrapper from './PageWrapper';
 import './Form.css';
 
@@ -7,11 +7,27 @@ function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
+
     if (!username || !email || !password) return alert('All fields are required');
     if (password.length < 6) return alert('Password must be at least 6 characters');
-    alert('Account created!');
+
+    try {
+      const res = await fetch('https://shapewebsitev2-production.up.railway.app/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) return alert(data.error);
+
+      alert('Account created!');
+      window.location.href = '/'; // redirect to login
+    } catch (err) {
+      alert('Signup failed.');
+    }
   };
 
   return (
@@ -54,7 +70,7 @@ function Signup() {
         </div>
 
         <button className="auth-btn" type="submit">Sign Up</button>
-        <div className="switch-link">Already have an account? <a href="#">Log in</a></div>
+        <div className="switch-link">Already have an account? <a href="/">Log in</a></div>
       </form>
     </PageWrapper>
   );
