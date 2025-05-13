@@ -6,10 +6,26 @@ function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (!email || !password) return alert('Fill in all fields');
-    alert('Logging in...');
+
+    try {
+      const res = await fetch('https://shapewebsitev2-production.up.railway.app/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) return alert(data.error);
+
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('username', data.username);
+      window.location.reload();
+    } catch (err) {
+      alert('Login failed.');
+    }
   };
 
   return (
@@ -40,7 +56,7 @@ function Login() {
         </div>
 
         <button className="auth-btn" type="submit">Log In</button>
-        <div className="switch-link">Don't have an account? <a href="#">Sign up</a></div>
+        <div className="switch-link">Don't have an account? <a href="/signup">Sign up</a></div>
       </form>
     </PageWrapper>
   );
