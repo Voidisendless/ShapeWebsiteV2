@@ -1,4 +1,4 @@
-// Load environment variables from .env file
+// Load environment variables from .env file 
 require('dotenv').config();
 
 // Import dependencies
@@ -23,8 +23,8 @@ const io = new Server(server, {
   },
 });
 
-// ===== 🧠 SHAPES BOT FUNCTION (now accepts dynamic model) =====
-async function getShapeReply(userMessage, modelId) {
+// ===== 🧠 SHAPES BOT FUNCTION (with custom headers) =====
+async function getShapeReply(userMessage, modelId, userId, channelId) {
   try {
     const response = await axios.post(
       'https://api.shapes.inc/v1/chat/completions',
@@ -36,6 +36,8 @@ async function getShapeReply(userMessage, modelId) {
         headers: {
           Authorization: `Bearer ${process.env.SHAPESINC_API_KEY}`,
           'Content-Type': 'application/json',
+          ...(userId && { 'X-User-Id': userId }),
+          ...(channelId && { 'X-Channel-Id': channelId }),
         },
       }
     );
@@ -59,34 +61,37 @@ io.on('connection', (socket) => {
     console.log(`📨 [${msg.channel}] ${msg.sender}: ${msg.text}`);
     io.emit('chat-message', msg);
 
-    // Match any @botname from the message (e.g., @Claude)
-    const mentionMatch = msg.text.match(/@([\w-]+)/); // ✅ allows hyphens
-    const mentionedBot = mentionMatch?.[1]; // e.g., "Claude"
+    // Match @mention with hyphen support (e.g., @akio-nemo)
+    const mentionMatch = msg.text.match(/@([\w-]+)/);
+    const mentionedBot = mentionMatch?.[1];
 
-    // Only respond if in #bots and a mention is found
     if (msg.channel === 'bots' && mentionedBot) {
       const modelId = `shapesinc/${mentionedBot.toLowerCase()}`;
 
       try {
-        const botReply = await getShapeReply(msg.text, modelId);
+        const botReply = await getShapeReply(
+          msg.text,
+          modelId,
+          msg.userId,   // ✅ user ID from frontend
+          msg.channel   // ✅ channel name from frontend
+        );
 
         const botMessage = {
           text: botReply,
           sender: mentionedBot,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           channel: 'bots',
-          bot: true, // 👈 add this
+          bot: true,
         };
-
 
         io.emit('chat-message', botMessage);
       } catch (err) {
-        // Reply with fallback message if API call fails
         io.emit('chat-message', {
           text: `⚠️ @${mentionedBot} couldn't respond right now.`,
           sender: mentionedBot,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           channel: 'bots',
+          bot: true,
         });
       }
     }
