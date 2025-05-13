@@ -75,7 +75,9 @@ io.on('connection', (socket) => {
           sender: mentionedBot,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           channel: 'bots',
+          bot: true, // 👈 add this
         };
+
 
         io.emit('chat-message', botMessage);
       } catch (err) {
