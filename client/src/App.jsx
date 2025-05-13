@@ -6,17 +6,6 @@ const socket = io('https://shapewebsitev2-production.up.railway.app', {
   transports: ['websocket'],
 });
 
-useEffect(() => {
-  socket.on('connect', () => {
-    console.log('✅ Connected to backend socket:', socket.id);
-  });
-
-  socket.on('disconnect', () => {
-    console.log('❌ Disconnected from backend socket');
-  });
-}, []);
-
-
 function App() {
   const [messages, setMessages] = useState([]);           // Chat message history
   const [msg, setMsg] = useState('');                     // Input message text
