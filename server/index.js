@@ -26,26 +26,22 @@ const io = new Server(server, {
 // ===== 🧠 SHAPES BOT FUNCTION =====
 async function getShapeReply(userMessage) {
   try {
-    // Send user's message to the Shapes API using POST
     const response = await axios.post(
-      'https://api.shapes.inc/v1/chat/completions', // Endpoint for Shape chat
+      'https://api.shapes.inc/v1/chat/completions',
       {
-        model: process.env.SHAPE_USERNAME, // Your specific Shape ID (from .env)
-        messages: [{ role: 'user', content: userMessage }], // User's message
+        model: process.env.SHAPE_USERNAME,
+        messages: [{ role: 'user', content: userMessage }],
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.SHAPESINC_API_KEY}`, // API key for auth
+          Authorization: `Bearer ${process.env.SHAPESINC_API_KEY}`,
           'Content-Type': 'application/json',
         },
       }
     );
 
-    // Extract the AI's reply from the response
     return response.data.choices[0].message.content;
-
   } catch (error) {
-    // Handle errors gracefully
     console.error('Error contacting Shapes API:', error.message);
     return "Sorry, I couldn't respond right now.";
   }
@@ -56,32 +52,31 @@ io.on('connection', (socket) => {
   console.log(`🔌 New client connected: ${socket.id}`);
 
   socket.on('user-typing', () => {
-  socket.broadcast.emit('user-typing'); // Let others know someone is typing
-});
+    socket.broadcast.emit('user-typing');
+  });
 
-  // When a user sends a chat message
   socket.on('chat-message', async (msg) => {
-    // Broadcast the message to all connected clients (including sender)
+    console.log(`📨 [${msg.channel}] ${msg.sender}: ${msg.text}`);
     io.emit('chat-message', msg);
 
-    // Check if the message mentions @ShapeBot
-    if (msg.text.includes('@VoidAI')) {
-      // Call Shapes API and get bot's reply
+    // Case-insensitive check for @VoidAI in the bots channel
+    if (
+      msg.channel === 'bots' &&
+      msg.text.toLowerCase().includes('@voidai')
+    ) {
       const botReply = await getShapeReply(msg.text);
 
-      // Format bot message as a chat object
       const botMessage = {
         text: botReply,
         sender: 'VoidAI',
-        time: new Date().toLocaleTimeString(),
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        channel: 'bots',
       };
 
-      // Broadcast the bot's reply to all clients
       io.emit('chat-message', botMessage);
     }
   });
 
-  // Log when user disconnects
   socket.on('disconnect', () => {
     console.log(`❌ Client disconnected: ${socket.id}`);
   });
