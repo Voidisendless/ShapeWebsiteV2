@@ -144,8 +144,9 @@ function App() {
           minHeight: 0,
         }}>
           {filteredMessages.map((m, i) => {
-            const isSelf = m.sender.toLowerCase() === username.toLowerCase();
+            const isSelf = m.userId === socket.id;
             const isBot = m.bot === true;
+
 
 
             return (
