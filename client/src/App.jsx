@@ -53,7 +53,7 @@ function App() {
     const messageObj = {
       text: msg,
       sender: `Guest-${socket.id.slice(0, 4)}`,
-      time: new Date().toLocaleTimeString(),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
     socket.emit('chat-message', messageObj);
@@ -93,7 +93,7 @@ function App() {
         borderRadius: '10px',
         boxShadow: '0 0 10px rgba(255, 255, 255, 0.1)',
       }}>
-        <h2 style={{ marginTop: 0 }}>💬 Real-Time Chat with VoidAI</h2>
+        <h2 style={{ marginTop: 0 }}>ShapeSpace</h2>
 
         {/* Chat messages */}
         <div style={{
