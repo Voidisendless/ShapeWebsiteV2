@@ -7,12 +7,12 @@ const socket = io('https://shapewebsitev2-production.up.railway.app', {
 });
 
 function App() {
-  const [messages, setMessages] = useState([]);           // Chat message history
-  const [msg, setMsg] = useState('');                     // Input message text
-  const [isTyping, setIsTyping] = useState(false);        // Typing indicator
-  const bottomRef = useRef(null);                         // Ref for auto-scroll
+  const [messages, setMessages] = useState([]);
+  const [msg, setMsg] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const bottomRef = useRef(null);
 
-  // Listen for messages and typing from backend
+  // Listen for chat messages and typing indicator
   useEffect(() => {
     socket.on('chat-message', (message) => {
       setMessages((prev) => [...prev, message]);
@@ -28,6 +28,18 @@ function App() {
       socket.off('user-typing');
     };
   }, []);
+
+  // ✅ Listen for socket connection/disconnection
+  useEffect(() => {
+    socket.on('connect', () => {
+      console.log('✅ Connected to backend socket:', socket.id);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('❌ Disconnected from backend socket');
+    });
+  }, []);
+
 
   // Scroll to bottom on new message
   useEffect(() => {
