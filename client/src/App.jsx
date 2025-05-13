@@ -45,7 +45,7 @@ function App() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Send chat message
+  // Send message to server
   const sendMessage = (e) => {
     e.preventDefault();
     if (!msg.trim()) return;
@@ -68,36 +68,39 @@ function App() {
   };
 
   return (
-    // Full-screen black background & centering
+    // Top-level wrapper with padding and full height
     <div style={{
       display: 'flex',
       justifyContent: 'center',
-      alignItems: 'center',
-      height: '100vh',
+      padding: '2rem',
+      minHeight: '100vh',
       backgroundColor: '#000',
+      boxSizing: 'border-box',
     }}>
-      {/* Chat app container */}
+      {/* Main chat box */}
       <div style={{
+        display: 'flex',
+        flexDirection: 'column',
         width: '800px',
-        height: '90vh',
+        height: '100%',
         fontFamily: 'sans-serif',
         backgroundColor: '#000',
         color: '#fff',
         padding: '1rem',
         borderRadius: '10px',
-        boxShadow: '0 0 10px rgba(255, 255, 255, 0.1)'
+        boxShadow: '0 0 10px rgba(255, 255, 255, 0.1)',
       }}>
-        <h2>💬 Real-Time Chat with VoidAI</h2>
+        <h2 style={{ marginTop: 0 }}>💬 Real-Time Chat with VoidAI</h2>
 
-        {/* Chat history */}
+        {/* Chat message area */}
         <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          border: '1px solid #444',
-          padding: 10,
-          height: '70vh',
+          flexGrow: 1,
           overflowY: 'auto',
           backgroundColor: '#111',
+          border: '1px solid #444',
+          padding: '10px',
+          borderRadius: '8px',
+          minHeight: 0, // Prevent flex overflow bugs
         }}>
           {messages.map((m, i) => {
             const isBot = m.sender.toLowerCase() === 'voidai';
@@ -157,11 +160,10 @@ function App() {
             </div>
           )}
 
-          {/* Invisible anchor to scroll to */}
           <div ref={bottomRef}></div>
         </div>
 
-        {/* Message input form */}
+        {/* Input field and send button */}
         <form onSubmit={sendMessage} style={{ display: 'flex', marginTop: 10 }}>
           <input
             type="text"
@@ -175,7 +177,7 @@ function App() {
               borderRadius: '6px 0 0 6px',
               fontSize: '1em',
               backgroundColor: '#222',
-              color: '#fff'
+              color: '#fff',
             }}
           />
           <button
