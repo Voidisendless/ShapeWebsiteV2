@@ -94,8 +94,12 @@ function App() {
         borderRadius: '10px',
         boxShadow: '0 0 10px rgba(255, 255, 255, 0.1)',
       }}>
-        <h2 style={{ marginTop: 0 }}>
-          💬 Chatting as <span style={{ color: '#4caf50' }}>{username}</span>
+        <h1 style={{ textAlign: 'center' }}>ShapeSpace</h1>
+        <h2 style={{
+          marginTop: 0,          // remove default top spacing
+          textAlign: 'center',   // center the text horizontally
+        }}>
+          Chatting as <span style={{ color: '#4caf50' }}>{username}</span>
         </h2>
 
         {/* Channel Tabs */}
