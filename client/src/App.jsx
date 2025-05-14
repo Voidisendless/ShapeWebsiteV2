@@ -104,17 +104,44 @@ function App() {
 
   const filteredMessages = messages.filter((m) => m.channel === channel);
 
+  const isMobile = window.innerWidth < 768;
+
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center',
-      width: '100vw', height: '100vh', backgroundColor: '#000' }}>
+    <div style={{
+      width: '100vw',
+      height: '100vh',
+      background: 'linear-gradient(135deg, #001f3f, #0074D9, #00aaff)',
+      backgroundSize: '400% 400%',
+      animation: 'gradientBG 15s ease infinite',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center'
+    }}>
+      <style>{`
+        @keyframes gradientBG {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+      `}</style>
+
       <div style={{
-        position: 'relative', display: 'flex', flexDirection: 'column', width: '800px',
-        height: '90vh', backgroundColor: '#000', color: '#fff', fontFamily: 'sans-serif',
-        padding: '1rem', borderRadius: '10px', boxShadow: '0 0 10px rgba(255, 255, 255, 0.1)',
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        width: isMobile ? '95%' : '800px',
+        height: '90vh',
+        backgroundColor: '#000',
+        color: '#fff',
+        fontFamily: 'sans-serif',
+        padding: '1rem',
+        borderRadius: '10px',
+        boxShadow: '0 0 10px rgba(255, 255, 255, 0.1)'
       }}>
         <button onClick={handleLogout} style={{
-          position: 'absolute', top: 20, right: 20, background: 'transparent', color: '#fff',
-          border: '1px solid #fff', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer',
+          position: 'absolute', top: 20, right: 20, background: 'transparent',
+          color: '#fff', border: '1px solid #fff', borderRadius: '6px',
+          padding: '6px 12px', cursor: 'pointer'
         }}>Logout</button>
 
         <h1 style={{ textAlign: 'center' }}>ShapeSpace</h1>
@@ -122,10 +149,19 @@ function App() {
           Chatting as <span style={{ color: '#4caf50' }}>{username}</span>
         </h2>
 
-        <div style={{ display: 'flex' }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: '1rem',
+          flexGrow: 1,
+          marginTop: '1rem'
+        }}>
           <div style={{
-            width: '180px', marginRight: '1rem', background: '#111',
-            padding: '10px', borderRadius: '8px', color: '#0f0'
+            width: isMobile ? '100%' : '180px',
+            background: '#111',
+            padding: '10px',
+            borderRadius: '8px',
+            color: '#0f0'
           }}>
             <h3 style={{ fontSize: '1rem', borderBottom: '1px solid #444', paddingBottom: '4px' }}>Online</h3>
             <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
@@ -135,14 +171,13 @@ function App() {
             </ul>
           </div>
 
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={{ marginBottom: '1rem' }}>
               <button onClick={() => setChannel('bots')} style={{
                 padding: '6px 12px', marginRight: 10,
                 backgroundColor: channel === 'bots' ? '#4caf50' : '#333',
                 color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer',
               }}>#bots</button>
-
               <button onClick={() => setChannel('general')} style={{
                 padding: '6px 12px',
                 backgroundColor: channel === 'general' ? '#4caf50' : '#333',
@@ -151,8 +186,9 @@ function App() {
             </div>
 
             <div style={{
-              flexGrow: 1, flexShrink: 1, overflowY: 'auto', backgroundColor: '#111',
-              border: '1px solid #444', padding: '10px', borderRadius: '8px',
+              flexGrow: 1, flexShrink: 1, overflowY: 'auto',
+              backgroundColor: '#111', border: '1px solid #444',
+              padding: '10px', borderRadius: '8px',
               height: '100%', minHeight: '300px'
             }}>
               {filteredMessages.map((m, i) => {
@@ -165,13 +201,13 @@ function App() {
                   <div key={i} style={{
                     display: 'flex', alignItems: 'flex-start',
                     flexDirection: isSelf ? 'row-reverse' : 'row',
-                    marginBottom: '12px',
+                    marginBottom: '12px'
                   }}>
                     <div style={{
                       width: 40, height: 40, borderRadius: '50%',
                       backgroundColor: avatarBg, color: '#000',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 'bold', fontSize: '1.2rem', margin: '0 10px',
+                      fontWeight: 'bold', fontSize: '1.2rem', margin: '0 10px'
                     }}>{avatarContent}</div>
 
                     <div style={{
@@ -186,7 +222,6 @@ function App() {
                   </div>
                 );
               })}
-
               {isTyping && (
                 <div style={{ fontStyle: 'italic', fontSize: '0.85em', color: '#ccc', margin: '6px 0' }}>
                   Someone is typing...
