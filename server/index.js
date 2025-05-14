@@ -1,182 +1,192 @@
-// Load environment variables from .env file
 require('dotenv').config();
-
-// Import dependencies
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
 const cors = require('cors');
-const axios = require('axios');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { Server } = require('socket.io');
+const http = require('http');
+const axios = require('axios');
+const { Pool } = require('pg');
 
-// Setup
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
+const PORT = process.env.PORT || 3001;
+
+// Use Railway internal DB host if deployed in Railway
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: 'http://localhost:5173', // Update to your frontend URL in prod
-    methods: ['GET', 'POST'],
-  },
-});
-
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
-const users = []; // In-memory user store
-
-// ===== /register =====
 app.post('/register', async (req, res) => {
   const { username, email, password } = req.body;
-  if (!username || !email || !password) {
+  if (!username || !email || !password)
     return res.status(400).json({ error: 'All fields required' });
-  }
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
-  }
 
-  const existing = users.find(u => u.username === username || u.email === email);
-  if (existing) {
-    return res.status(409).json({ error: 'User already exists' });
+  if (password.length < 6)
+    return res.status(400).json({ error: 'Password too short' });
+
+  try {
+    const userExists = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (userExists.rows.length > 0)
+      return res.status(409).json({ error: 'User already exists' });
+
+    const hashed = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING *',
+      [username, email, hashed]
+    );
+
+    const user = result.rows[0];
+    const token = jwt.sign({ id: user.id, email, username }, JWT_SECRET);
+    res.json({ token, username });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Registration failed' });
   }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-  users.push({ username, email, password: hashedPassword });
-
-  res.status(201).json({ message: 'User registered successfully' });
 });
 
-// ===== /login =====
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
-
-  const user = users.find(u => u.email === email);
-  if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(401).json({ error: 'Invalid credentials' });
-
-  const token = jwt.sign(
-    { username: user.username, email: user.email },
-    JWT_SECRET,
-    { expiresIn: '2h' }
-  );
-
-  res.json({ token, username: user.username });
-});
-
-// ===== Shapes API Request =====
-async function getShapeReply(userMessage, modelId, userId, channelId) {
   try {
-    const response = await axios.post(
-      'https://api.shapes.inc/v1/chat/completions',
-      {
-        model: modelId,
-        messages: [{ role: 'user', content: userMessage }],
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.SHAPESINC_API_KEY}`,
-          'Content-Type': 'application/json',
-          ...(userId && { 'X-User-Id': userId }),
-          ...(channelId && { 'X-Channel-Id': channelId }),
-        },
-      }
-    );
-    return response.data.choices[0].message.content;
-  } catch (error) {
-    console.error(`❌ Error from Shapes API (${modelId}):`, error.message);
-    throw error;
-  }
-}
+    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = result.rows[0];
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
-// ===== JWT Middleware for Socket.io =====
-io.use((socket, next) => {
-  const token = socket.handshake.auth?.token;
-  const guestName = socket.handshake.auth?.guestName;
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) return res.status(401).json({ error: 'Invalid credentials' });
 
-  if (!token) {
-    if (!guestName) return next(new Error('Guest name required'));
-    socket.user = { username: guestName, email: `guest-${socket.id}` };
-    return next();
-  }
-
-  try {
-    const user = jwt.verify(token, JWT_SECRET);
-    socket.user = user;
-    next();
+    const token = jwt.sign({ id: user.id, email, username: user.username }, JWT_SECRET);
+    res.json({ token, username: user.username });
   } catch (err) {
-    next(new Error('Invalid token'));
+    console.error(err);
+    res.status(500).json({ error: 'Login failed' });
   }
 });
 
-// ===== Socket Events =====
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: '*' }
+});
+
 const connectedUsers = new Map();
 
+io.use(async (socket, next) => {
+  const { token, guestName } = socket.handshake.auth;
+  if (token) {
+    try {
+      const user = jwt.verify(token, JWT_SECRET);
+      socket.user = user;
+      return next();
+    } catch {
+      return next(new Error('Invalid token'));
+    }
+  }
+  if (guestName) {
+    socket.user = { username: guestName, email: guestName };
+    return next();
+  }
+  return next(new Error('Unauthorized'));
+});
+
 io.on('connection', (socket) => {
+  console.log(`🔌 ${socket.user.username} connected`);
   connectedUsers.set(socket.id, socket.user.username);
-  socket.emit('user-info', socket.user);
   io.emit('online-users', Array.from(connectedUsers.values()));
 
-  socket.on('user-typing', () => {
-    socket.broadcast.emit('user-typing');
-  });
+  socket.emit('user-info', socket.user);
 
   socket.on('chat-message', async (msg) => {
     const enrichedMsg = {
       ...msg,
       sender: socket.user.username,
-      userId: socket.user.email,
+      userId: socket.user.id || socket.user.email || null,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       channel: msg.channel,
     };
 
-    console.log(`📨 [${enrichedMsg.channel}] ${enrichedMsg.sender}: ${enrichedMsg.text}`);
+    try {
+      if (socket.user.id) {
+        await pool.query(
+          'INSERT INTO messages (user_id, text, channel, created_at) VALUES ($1, $2, $3, NOW())',
+          [socket.user.id, msg.text, msg.channel]
+        );
+      }
+    } catch (err) {
+      console.error('DB message insert error:', err);
+    }
+
     io.emit('chat-message', enrichedMsg);
 
+    // Bot reply for @botname in #bots
     const mentionMatch = msg.text.match(/@([\w-]+)/);
     const mentionedBot = mentionMatch?.[1];
 
     if (msg.channel === 'bots' && mentionedBot) {
-      const modelId = `shapesinc/${mentionedBot.toLowerCase()}`;
       try {
-        const botReply = await getShapeReply(
-          msg.text,
-          modelId,
-          enrichedMsg.userId,
-          enrichedMsg.channel
-        );
+        const response = await axios.post('https://shapebots.onrender.com/api/reply', {
+          message: msg.text,
+          repo: `shapesinc/${mentionedBot.toLowerCase()}`,
+          userId: enrichedMsg.userId,
+          channel: enrichedMsg.channel
+        });
 
-        const botMsg = {
-          text: botReply,
+        io.emit('chat-message', {
+          text: response.data,
           sender: mentionedBot,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           channel: 'bots',
-          bot: true,
-        };
-
-        io.emit('chat-message', botMsg);
+          bot: true
+        });
       } catch {
         io.emit('chat-message', {
           text: `⚠️ @${mentionedBot} couldn't respond.`,
           sender: mentionedBot,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           channel: 'bots',
-          bot: true,
+          bot: true
         });
       }
     }
   });
 
+  socket.on('user-typing', () => {
+    socket.broadcast.emit('user-typing');
+  });
+
   socket.on('disconnect', () => {
-    console.log(`❌ Socket disconnected: ${socket.user.username} (${socket.id})`);
+    console.log(`❌ ${socket.user.username} disconnected`);
     connectedUsers.delete(socket.id);
     io.emit('online-users', Array.from(connectedUsers.values()));
   });
 });
 
-// ===== Start Server =====
-server.listen(3000, () => {
-  console.log('✅ Server running at http://localhost:3000');
+server.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+});
+
+// ... original requires above
+app.get('/messages', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+        m.text,
+        m.channel,
+        m.created_at,
+        COALESCE(u.username, m.guest_name) AS sender,
+        m.user_id,
+        m.guest_name
+       FROM messages m
+       LEFT JOIN users u ON m.user_id = u.id
+       ORDER BY m.created_at ASC
+       LIMIT 100`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Message history fetch failed:', err);
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
 });

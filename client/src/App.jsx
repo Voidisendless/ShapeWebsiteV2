@@ -22,6 +22,21 @@ function App() {
   const [onlineUsers, setOnlineUsers] = useState([]);
 
   useEffect(() => {
+  const fetchHistory = async () => {
+    try {
+      const res = await fetch("https://shapewebsitev2-production.up.railway.app/messages");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setMessages(data);
+      }
+    } catch (err) {
+      console.error("Failed to load message history", err);
+    }
+  };
+  fetchHistory();
+}, []);
+
+useEffect(() => {
     const updateUser = () => {
       const token = localStorage.getItem('authToken');
       const stored = localStorage.getItem('username');
