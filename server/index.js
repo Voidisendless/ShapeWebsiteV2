@@ -18,7 +18,13 @@ const pool = new Pool({
 });
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: 'https://shape-website-v2.vercel.app',
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 app.post('/register', async (req, res) => {
