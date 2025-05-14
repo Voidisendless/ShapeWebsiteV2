@@ -91,10 +91,16 @@ async function getShapeReply(userMessage, modelId, userId, channelId) {
   }
 }
 
-// ===== JWT Middleware for Socket.io =====
+// ===== JWT/Guest Middleware for Socket.io =====
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
-  if (!token) return next(new Error('Authentication token required'));
+  const guestName = socket.handshake.auth?.guestName;
+
+  if (!token) {
+    if (!guestName) return next(new Error('Guest name required'));
+    socket.user = { username: guestName, email: `guest-${socket.id}` };
+    return next();
+  }
 
   try {
     const user = jwt.verify(token, JWT_SECRET);
@@ -124,7 +130,6 @@ io.on('connection', (socket) => {
     console.log(`📨 [${enrichedMsg.channel}] ${enrichedMsg.sender}: ${enrichedMsg.text}`);
     io.emit('chat-message', enrichedMsg);
 
-    // Bot call if @mention detected
     const mentionMatch = msg.text.match(/@([\w-]+)/);
     const mentionedBot = mentionMatch?.[1];
 
