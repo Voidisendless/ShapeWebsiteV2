@@ -71,8 +71,19 @@ function Signup() {
         </div>
 
         <button className="auth-btn" type="submit">Sign Up</button>
-        <div className="switch-link">
-          Already have an account? <Link to="/login">Log in</Link>
+        <div className="switch-link">Already have an account? <Link to="/login">Log in</Link></div>
+        <div className="switch-link" style={{ marginTop: '1.5rem' }}>
+          <Link to="/guest" style={{
+            display: 'inline-block',
+            padding: '10px',
+            backgroundColor: '#4caf50',
+            color: 'white',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            fontWeight: 'bold'
+          }}>
+            Or join as guest →
+          </Link>
         </div>
       </form>
     </PageWrapper>

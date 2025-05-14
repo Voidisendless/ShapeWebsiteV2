@@ -6,6 +6,7 @@ import Login from './Login';
 import Signup from './Signup';
 import App from './App';
 import ProtectedRoute from './ProtectedRoute';
+import GuestEntry from './GuestEntry';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -18,6 +19,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         } />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/guest" element={<GuestEntry />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>
