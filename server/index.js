@@ -116,6 +116,7 @@ const connectedUsers = new Map();
 
 io.on('connection', (socket) => {
   connectedUsers.set(socket.id, socket.user.username);
+  socket.emit('user-info', socket.user);
   io.emit('online-users', Array.from(connectedUsers.values()));
 
   socket.on('user-typing', () => {
