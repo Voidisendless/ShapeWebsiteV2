@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 
 const socket = io('https://shapewebsitev2-production.up.railway.app', {
   auth: {
-    token: localStorage.getItem('authToken'),
+    token: localStorage.getItem('authToken') || '',
   },
   transports: ['websocket'],
 });
@@ -14,9 +14,14 @@ function App() {
   const [msg, setMsg] = useState('');
   const [channel, setChannel] = useState('bots');
   const [isTyping, setIsTyping] = useState(false);
-  const [username] = useState(localStorage.getItem('username') || 'Guest');
-  const bottomRef = useRef(null);
   const navigate = useNavigate();
+  const bottomRef = useRef(null);
+
+  const storedUsername = localStorage.getItem('username');
+  const guestName = localStorage.getItem('guestName');
+  const guestEmoji = localStorage.getItem('guestEmoji');
+  const guestColor = localStorage.getItem('guestColor');
+  const [username] = useState(storedUsername || guestName || 'Guest');
 
   useEffect(() => {
     socket.on('chat-message', (message) => {
@@ -64,7 +69,10 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('username');
-    navigate('/login');
+    localStorage.removeItem('guestName');
+    localStorage.removeItem('guestEmoji');
+    localStorage.removeItem('guestColor');
+    navigate('/guest');
   };
 
   return (
@@ -112,6 +120,17 @@ function App() {
           {filteredMessages.map((m, i) => {
             const isSelf = m.userId === socket.id;
             const isBot = m.bot === true;
+
+            const avatarBg = isBot
+              ? '#888'
+              : isSelf
+              ? guestColor || '#4caf50'
+              : '#2196f3';
+
+            const avatarContent = isSelf
+              ? guestEmoji || m.sender[0]?.toUpperCase()
+              : m.sender[0]?.toUpperCase();
+
             return (
               <div key={i} style={{
                 display: 'flex', alignItems: 'flex-start',
@@ -120,10 +139,10 @@ function App() {
               }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: '50%',
-                  backgroundColor: isBot ? '#888' : isSelf ? '#4caf50' : '#2196f3',
+                  backgroundColor: avatarBg,
                   color: '#000', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', fontWeight: 'bold', fontSize: '1rem', margin: '0 10px',
-                }}>{m.sender[0]?.toUpperCase() || '?'}</div>
+                  justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem', margin: '0 10px',
+                }}>{avatarContent}</div>
 
                 <div style={{
                   backgroundColor: isBot ? '#ddd' : isSelf ? '#b2fab4' : '#fff',
