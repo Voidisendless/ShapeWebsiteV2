@@ -8,7 +8,7 @@ function App() {
   const [channel, setChannel] = useState('bots');
   const [isTyping, setIsTyping] = useState(false);
   const [username, setUsername] = useState('');
-  const [userId, setUserId] = useState(''); // ✅ NEW: store backend user ID
+  const [userId, setUserId] = useState('');
   const [auth, setAuth] = useState({
     token: localStorage.getItem('authToken'),
     guestName: localStorage.getItem('guestName'),
@@ -21,7 +21,6 @@ function App() {
   const guestColor = localStorage.getItem('guestColor');
   const [onlineUsers, setOnlineUsers] = useState([]);
 
-  // Update username reactively
   useEffect(() => {
     const updateUser = () => {
       const token = localStorage.getItem('authToken');
@@ -34,7 +33,6 @@ function App() {
     return () => window.removeEventListener('storage', updateUser);
   }, []);
 
-  // Socket connection and listeners
   useEffect(() => {
     const newSocket = io('https://shapewebsitev2-production.up.railway.app', {
       auth: {
@@ -47,7 +45,7 @@ function App() {
     socketRef.current = newSocket;
 
     newSocket.on('user-info', (user) => {
-      setUserId(user.email); // ✅ store server-verified userId
+      setUserId(user.email);
     });
 
     newSocket.on('chat-message', (message) => {
@@ -80,7 +78,7 @@ function App() {
     const messageObj = {
       text: msg,
       sender: username,
-      userId: userId, // ✅ use server-authenticated ID
+      userId: userId,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       channel,
     };
@@ -138,9 +136,7 @@ function App() {
           </div>
 
           <div style={{ flex: 1 }}>
-            <div style={{
-              marginBottom: '1rem'
-            }}>
+            <div style={{ marginBottom: '1rem' }}>
               <button onClick={() => setChannel('bots')} style={{
                 padding: '6px 12px', marginRight: 10,
                 backgroundColor: channel === 'bots' ? '#4caf50' : '#333',
@@ -155,11 +151,12 @@ function App() {
             </div>
 
             <div style={{
-              flexGrow: 1, overflowY: 'auto', backgroundColor: '#111',
-              border: '1px solid #444', padding: '10px', borderRadius: '8px', minHeight: 0, height: 'calc(100% - 100px)'
+              flexGrow: 1, flexShrink: 1, overflowY: 'auto', backgroundColor: '#111',
+              border: '1px solid #444', padding: '10px', borderRadius: '8px',
+              height: '100%', minHeight: '300px'
             }}>
               {filteredMessages.map((m, i) => {
-                const isSelf = m.userId === userId; // ✅ updated comparison
+                const isSelf = m.userId === userId;
                 const isBot = m.bot === true;
                 const avatarBg = isBot ? '#888' : isSelf ? guestColor || '#4caf50' : '#2196f3';
                 const avatarContent = isSelf ? guestEmoji || m.sender[0]?.toUpperCase() : m.sender[0]?.toUpperCase();
