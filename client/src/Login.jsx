@@ -22,6 +22,9 @@ function Login() {
       const data = await res.json();
       if (!res.ok) return alert(data.error);
 
+      localStorage.removeItem('guestName');
+      localStorage.removeItem('guestEmoji');
+      localStorage.removeItem('guestColor');
       localStorage.setItem('authToken', data.token);
       localStorage.setItem('username', data.username);
       navigate('/');

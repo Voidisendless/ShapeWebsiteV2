@@ -9,6 +9,8 @@ function GuestEntry() {
 
   useEffect(() => {
     const existing = localStorage.getItem('guestName');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('username');
     if (existing) {
       navigate('/');
     } else {
@@ -18,7 +20,7 @@ function GuestEntry() {
   }, [navigate]);
 
   const handleJoin = () => {
-    const { emoji, color } = generateGuestName(); // re-pick color/emoji for this name
+    const { emoji, color } = generateGuestName();
     localStorage.setItem('guestName', guestName.trim());
     localStorage.setItem('guestEmoji', emoji);
     localStorage.setItem('guestColor', color);

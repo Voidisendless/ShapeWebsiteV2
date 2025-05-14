@@ -91,7 +91,7 @@ async function getShapeReply(userMessage, modelId, userId, channelId) {
   }
 }
 
-// ===== JWT/Guest Middleware for Socket.io =====
+// ===== JWT Middleware for Socket.io =====
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
   const guestName = socket.handshake.auth?.guestName;
@@ -122,6 +122,7 @@ io.on('connection', (socket) => {
   socket.on('chat-message', async (msg) => {
     const enrichedMsg = {
       ...msg,
+      channel: msg.channel,
       sender: socket.user.username,
       userId: socket.user.email,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -130,6 +131,7 @@ io.on('connection', (socket) => {
     console.log(`📨 [${enrichedMsg.channel}] ${enrichedMsg.sender}: ${enrichedMsg.text}`);
     io.emit('chat-message', enrichedMsg);
 
+    // Bot call if @mention detected
     const mentionMatch = msg.text.match(/@([\w-]+)/);
     const mentionedBot = mentionMatch?.[1];
 
