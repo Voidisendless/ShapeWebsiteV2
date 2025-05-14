@@ -108,22 +108,13 @@ function App() {
 
   return (
     <div style={{
-      width: '100vw',
-      height: '100vh',
-      background: 'linear-gradient(135deg, #001f3f, #0074D9, #00aaff)',
-      backgroundSize: '400% 400%',
-      animation: 'gradientBG 15s ease infinite',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center'
-    }}>
-      <style>{`
-        @keyframes gradientBG {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-      `}</style>
+  width: '100vw',
+  height: '100vh',
+  backgroundColor: '#000',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center'
+}}>
 
       <div style={{
         position: 'relative',
