@@ -112,8 +112,11 @@ io.use((socket, next) => {
 });
 
 // ===== Socket Events =====
+const connectedUsers = new Map();
+
 io.on('connection', (socket) => {
-  console.log(`🔌 Socket connected: ${socket.user.username} (${socket.id})`);
+  connectedUsers.set(socket.id, socket.user.username);
+  io.emit('online-users', Array.from(connectedUsers.values()));
 
   socket.on('user-typing', () => {
     socket.broadcast.emit('user-typing');
@@ -122,16 +125,15 @@ io.on('connection', (socket) => {
   socket.on('chat-message', async (msg) => {
     const enrichedMsg = {
       ...msg,
-      channel: msg.channel,
       sender: socket.user.username,
       userId: socket.user.email,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      channel: msg.channel,
     };
 
     console.log(`📨 [${enrichedMsg.channel}] ${enrichedMsg.sender}: ${enrichedMsg.text}`);
     io.emit('chat-message', enrichedMsg);
 
-    // Bot call if @mention detected
     const mentionMatch = msg.text.match(/@([\w-]+)/);
     const mentionedBot = mentionMatch?.[1];
 
@@ -168,6 +170,8 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log(`❌ Socket disconnected: ${socket.user.username} (${socket.id})`);
+    connectedUsers.delete(socket.id);
+    io.emit('online-users', Array.from(connectedUsers.values()));
   });
 });
 
